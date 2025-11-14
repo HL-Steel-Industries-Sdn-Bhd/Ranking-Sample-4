@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排行榜展示（修复版）</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #FFEFEF, #E8FFF8);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 2s ease;
+  }
+
+  .scene {
+    width: 900px;
+    height: 600px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .carousel {
+    display: flex;
+    transition: transform 1s ease-in-out;
+  }
+
+  .card {
+    flex: 0 0 900px;
+    height: 600px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .card-content {
+    width: 90%;
+    height: 85%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+    overflow: auto;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  table {
+    width: 100%;
+    font-size: 1.2rem;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 0.6rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  th {
+    background-color: rgba(255,255,255,0.6);
+  }
+
+  tr:nth-child(even) {
+    background-color: rgba(255,255,255,0.4);
+  }
+
+  img.logo {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    z-index: 20;
+  }
+
+  /* 点击区域（隐藏但可点击） */
+  .left-zone, .right-zone {
+    position: fixed;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    z-index: 10;
+    cursor: pointer;
+  }
+  .left-zone { left: 0; }
+  .right-zone { right: 0; }
+
+  /* 🌟 立体发光箭头（装饰用） */
+  .arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 4rem;
+    font-weight: bold;
+    color: white;
+    text-shadow:
+      0 0 10px rgba(255,255,255,0.6),
+      0 0 20px rgba(255,255,255,0.4),
+      2px 4px 6px rgba(0,0,0,0.5);
+    opacity: 0.6;
+    pointer-events: none; /* 确保不挡点击 */
+    user-select: none;
+    animation: pulseGlow 2s infinite alternate;
+    z-index: 15;
+  }
+
+  .arrow.left { left: 3%; }
+  .arrow.right { right: 3%; }
+
+  @keyframes pulseGlow {
+    from { text-shadow: 0 0 8px rgba(255,255,255,0.5); opacity: 0.5; }
+    to { text-shadow: 0 0 25px rgba(255,255,255,1); opacity: 0.9; }
+  }
+
+  @media(max-width: 800px){
+    .scene { width: 100vw; height: 80vh; }
+    .card { flex: 0 0 100vw; height: 80vh; }
+    h2 { font-size: 1.4rem; }
+    table { font-size: 1rem; }
+    .arrow { font-size: 3rem; opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+  <img class="logo" src="https://i.imgur.com/AbyTxH1.png" alt="Company Logo">
+
+  <!-- 装饰箭头 -->
+  <div class="arrow left">❮</div>
+  <div class="arrow right">❯</div>
+
+  <div class="left-zone"></div>
+  <div class="right-zone"></div>
+
+  <div class="scene">
+    <div class="carousel" id="carousel">
+      <!-- 卡片内容 -->
+    </div>
+  </div>
+
+<script>
+// 卡片数据
+const cardData = [
+  {
+    title: "Total Point Ranking",
+    color: "#C1E1FF",
+    headers: ["Rank", "Name", "Total Point"],
+    rows: [
+      [1, "Seah", 22963],
+      [2, "Wai Phyo", 20276],
+      [3, "Albert", 20086],
+      [4, "Han", 18663],
+      [5, "Chay", 17592],
+      [6, "Luna", 16660],
+      [7, "Terrence", 16571],
+      [8, "Bunyau", 16538],
+      [9, "Aung Thant", 11517],
+      [10, "Edika", 10977],
+      [11, "Myo", 9509],
+      [12, "Piang Soe", 8112],
+      [13, "Poh", 6317],
+      [14, "Yu Jun", 5794],
+      [15, "Chin", 4190],
+      [16, "William", 3370]
+    ]
+  },
+  {
+    title: "Monthly Point Ranking",
+    color: "#FFD8B1",
+    headers: ["Rank", "Name", "Total Point"],
+    rows: [
+      [1, "Seah", 9193],
+      [2, "Aung Thant", 7622],
+      [3, "Albert", 4695],
+      [4, "Bunyau", 4493],
+      [5, "Han", 3011],
+      [6, "Wai Phyo", 2751],
+      [7, "Poh", 1080],
+      [8, "Piang Soe", 881],
+      [9, "Myo", 711],
+      [10, "Terrence", 692],
+      [11, "Luna", 472],
+      [12, "Edika", 459],
+      [13, "Chay", 373],
+      [14, "Chin", 85],
+      [15, "Yu Jun", 23],
+      [16, "William", 0]
+    ]
+  },
+  {
+    title: "Bounty Task Ranking",
+    color: "#C1FFD7",
+    headers: ["Rank", "Name", "Bounty Task Point"],
+    rows: [
+      [1, "?", 0],
+      [2, "?", 0],
+      [3, "?", 0],
+      [4, "?", 0],
+      [5, "?", 0]
+    ]
+  },
+  {
+    title: "Pending Ranking",
+    color: "#C1E1FF",
+    headers: ["Rank", "Name", "Pending"],
+    rows: [
+      [1, "?", 0],
+      [2, "?", 0],
+      [3, "?", 0],
+      [4, "?", 0],
+      [5, "?", 0]
+    ]
+  }
+];
+
+// 背景颜色
+const colors = [
+  "linear-gradient(135deg, #FFF8E7, #E3F2FD)",
+  "linear-gradient(135deg, #E8FFF8, #FFF5E1)",
+  "linear-gradient(135deg, #FFF0F5, #E3FFF7)",
+  "linear-gradient(135deg, #F0FFF3, #E8E8FF)"
+];
+
+// 初始化轮播
+const carousel = document.getElementById('carousel');
+let currentIndex = 0;
+let autoSlideInterval;
+
+// 创建卡片HTML
+function createCardHTML(card) {
+  return `
+    <div class="card" style="background:${card.color};">
+      <div class="card-content">
+        <h2>${card.title}</h2>
+        <table>
+          <tr>${card.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          ${card.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// 初始化轮播内容
+function initializeCarousel() {
+  // 添加所有卡片
+  cardData.forEach(card => {
+    carousel.innerHTML += createCardHTML(card);
+  });
+  
+  // 设置初始位置
+  updateCarousel();
+}
+
+// 更新轮播位置
+function updateCarousel() {
+  const width = carousel.children[0].offsetWidth;
+  carousel.style.transform = `translateX(-${width * currentIndex}px)`;
+  document.body.style.background = colors[currentIndex];
+}
+
+// 下一张
+function nextSlide() {
+  currentIndex = (currentIndex + 1) % cardData.length;
+  updateCarousel();
+}
+
+// 上一张
+function prevSlide() {
+  currentIndex = (currentIndex - 1 + cardData.length) % cardData.length;
+  updateCarousel();
+}
+
+// 开始自动轮播
+function startAutoSlide() {
+  autoSlideInterval = setInterval(nextSlide, 5000);
+}
+
+// 重置自动轮播计时器
+function resetAutoSlide() {
+  clearInterval(autoSlideInterval);
+  startAutoSlide();
+}
+
+// 初始化
+initializeCarousel();
+startAutoSlide();
+
+// 事件监听
+document.querySelector(".left-zone").addEventListener("click", () => {
+  prevSlide();
+  resetAutoSlide();
+});
+
+document.querySelector(".right-zone").addEventListener("click", () => {
+  nextSlide();
+  resetAutoSlide();
+});
+
+// 触控滑动支持
+let startX = 0;
+document.body.addEventListener("touchstart", e => {
+  startX = e.touches[0].clientX;
+});
+
+document.body.addEventListener("touchend", e => {
+  const diff = e.changedTouches[0].clientX - startX;
+  if (diff > 50) {
+    prevSlide();
+    resetAutoSlide();
+  } else if (diff < -50) {
+    nextSlide();
+    resetAutoSlide();
+  }
+});
+
+// 响应窗口大小变化
+window.addEventListener("resize", updateCarousel);
+</script>
+</body>
+</html>
